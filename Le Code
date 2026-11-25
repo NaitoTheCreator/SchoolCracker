@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SchoolFucker – Handschrift & Notability PDF Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Inter:wght@400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        caveat: ['Caveat', 'cursive'],
+                        patrick: ['Patrick Hand', 'cursive'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        html, body {
+            background-color: #0a0b0e;
+            color: #f3f4f6;
+            overscroll-behavior: none;
+            margin: 0;
+            padding: 0;
+        }
+        canvas { touch-action: none; }
+        input[type="range"].studio-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 5px;
+            border-radius: 999px;
+            background: #262a34;
+            outline: none;
+        }
+        input[type="range"].studio-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #2b82f6;
+            cursor: pointer;
+            border: 2px solid #eff6ff;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0b0e; }
+        ::-webkit-scrollbar-thumb { background: #262a34; border-radius: 999px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row bg-[#0a0b0e] text-gray-100 font-sans">
+
+    <!-- MOBILE HEADER -->
+    <header class="lg:hidden flex items-center justify-between px-4 py-3 bg-[#111318] border-b border-[#22252e] sticky top-0 z-30">
+        <div class="flex items-center gap-2.5">
+            <button id="mobileMenuOpenBtn" class="p-2 rounded-lg bg-[#171a21] border border-[#262a34] text-gray-200">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <div class="w-7 h-7 rounded-lg bg-[#2563eb] flex items-center justify-center shadow-sm">
+                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/></svg>
+            </div>
+            <span class="font-bold text-base tracking-tight text-white">SchoolFucker</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <button onclick="setActiveView('write')" id="mobTabWrite" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#2563eb] text-white">Schreiben</button>
+            <button onclick="setActiveView('notebooks')" id="mobTabNotebooks" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#171a21] text-gray-300">Hefte</button>
+            <button onclick="setActiveView('my-script')" id="mobTabScript" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#171a21] text-gray-300">Schrift</button>
+        </div>
+    </header>
+
+    <!-- MOBILE BACKDROP -->
+    <div id="mobileSidebarBackdrop" class="fixed inset-0 z-40 bg-black/70 hidden lg:hidden"></div>
+
+    <!-- LINKE SIDEBAR -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 lg:sticky lg:top-0 lg:z-20 h-screen w-[225px] shrink-0 bg-[#111318] border-r border-[#22252e] flex flex-col justify-between transition-transform duration-200 -translate-x-full lg:translate-x-0">
+        <div>
+            <div class="flex items-center justify-between px-4 pt-5 pb-4">
+                <button onclick="setActiveView('write')" class="flex items-center gap-2.5 text-left group">
+                    <div class="w-8 h-8 rounded-lg bg-[#2563eb] group-hover:bg-[#1d4ed8] transition flex items-center justify-center shadow-md shadow-blue-950/50">
+                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/></svg>
+                    </div>
+                    <span class="font-bold text-[16px] tracking-tight text-white">SchoolFucker</span>
+                </button>
+                <button id="mobileMenuCloseBtn" class="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-white">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <nav class="px-3 space-y-1">
+                <button onclick="setActiveView('write')" id="nav-write" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium bg-[#182132] text-[#60a5fa] border border-[#24324d] transition">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg>
+                    <span>Schreiben</span>
+                </button>
+
+                <button onclick="setActiveView('notebooks')" id="nav-notebooks" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium text-gray-300 hover:bg-[#171a21] hover:text-white border border-transparent transition">
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-4 h-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
+                        <span>Meine Hefte</span>
+                    </div>
+                    <span id="sidebarNotebookBadge" class="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-[#1c2029] text-gray-300 border border-[#2a2f3d]">1</span>
+                </button>
+
+                <button onclick="setActiveView('my-script')" id="nav-my-script" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-gray-300 hover:bg-[#171a21] hover:text-white border border-transparent transition">
+                    <svg class="w-4 h-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42"/></svg>
+                    <span>Meine Schrift</span>
+                </button>
+            </nav>
+        </div>
+
+        <div class="p-3 border-t border-[#1e222b] space-y-2.5">
+            <div class="bg-[#161922] border border-[#252a36] rounded-xl p-2.5 flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-[#1d4ed8] text-white font-bold text-xs flex items-center justify-center shrink-0">SF</div>
+                <div class="min-w-0">
+                    <div class="text-xs font-semibold text-white truncate">SchoolFucker</div>
+                    <div class="text-[10px] text-emerald-400 truncate">Alle Funktionen frei</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- RECHTER HAUPTBEREICH -->
+    <div class="flex-1 min-w-0 flex flex-col bg-[#0a0b0e]">
+        <div class="h-12 border-b border-[#1d2029] bg-[#0d0f14]/90 backdrop-blur px-4 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-10">
+            <div class="flex items-center gap-2 text-xs sm:text-sm min-w-0">
+                <span class="text-gray-400 font-medium">SchoolFucker</span>
+                <span class="text-gray-600">/</span>
+                <span id="subHeaderTitle" class="text-white font-semibold truncate">Schreiben</span>
+            </div>
+            <div id="topRightPills" class="flex items-center gap-2 shrink-0">
+                <span id="notebookCountPill" class="px-2.5 py-1 rounded-md bg-[#161922] border border-[#262b38] text-[11px] font-medium text-gray-300">1 Heft</span>
+                <span id="titlePreviewPill" class="hidden sm:inline-block max-w-[240px] truncate px-2.5 py-1 rounded-md bg-[#161922] border border-[#262b38] text-[11px] text-gray-400">Titel: Mein Heft</span>
+            </div>
+        </div>
+
+        <!-- ANSICHT 1: SCHREIBEN -->
+        <main id="viewWrite" class="flex-1 p-3 sm:p-5 max-w-[1580px] w-full mx-auto">
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-start">
+                <!-- LINKE SPALTE -->
+                <div class="xl:col-span-6 space-y-4">
+                    <div class="bg-[#151821] border border-[#262a34] rounded-2xl p-3 sm:p-4 shadow-sm">
+                        <textarea id="writeTextarea" rows="5" placeholder="Gib hier deinen Text ein..." class="w-full bg-transparent text-gray-100 placeholder-gray-500 text-sm sm:text-[15px] leading-relaxed resize-y focus:outline-none min-h-[115px]"></textarea>
+
+                        <div class="mt-3 pt-2.5 border-t border-[#262a34] flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <button onclick="clearWriteText()" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-[#1f2430] transition">
+                                    <span>× Leeren</span>
+                                </button>
+                                <button onclick="insertPageBreak()" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-[#1f2430] transition">
+                                    <span>+ Neue Seite</span>
+                                </button>
+                                <button onclick="shuffleAllVariants()" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-[#1f2430] transition">
+                                    <span>↻ Varianten neu mischen</span>
+                                </button>
+                            </div>
+                            <div id="liveTextCounter" class="text-[11px] text-gray-400 font-medium">0 Zeichen · 0 Wörter</div>
+                        </div>
+                    </div>
+
+                    <!-- SCHRIFTART, PAPIER & TITEL -->
+                    <div class="bg-[#151821] border border-[#262a34] rounded-2xl p-3.5 sm:p-4 space-y-3.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-gray-300">Handschrift & Papier</span>
+                            <button onclick="setActiveView('my-script')" class="text-xs font-medium text-[#60a5fa] hover:text-blue-300 transition">Eigene Schrift trainieren →</button>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Handschrift</label>
+                                <select id="fontSelect" onchange="handleControlChange()" class="w-full bg-[#0f1117] border border-[#262a34] rounded-xl px-2.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-[#2563eb]">
+                                    <option value="my-script">My handwriting (Eigene Schrift)</option>
+                                    <option value="caveat">Schüler-Schrift (Caveat)</option>
+                                    <option value="patrick">Ordentliche Druckschrift</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Papier</label>
+                                <select id="paperSelect" onchange="handleControlChange()" class="w-full bg-[#0f1117] border border-[#262a34] rounded-xl px-2.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-[#2563eb]">
+                                    <option value="grid">Kariert (5 mm)</option>
+                                    <option value="lined">Liniert</option>
+                                    <option value="blank">Blanko (Weiß)</option>
+                                    <option value="custom-png">Eigenes PNG-Hintergrundbild</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Titel des Hefts</label>
+                                <input id="notebookTitleInput" type="text" value="Mein Heft" oninput="handleControlChange()" class="w-full bg-[#0f1117] border border-[#262a34] rounded-xl px-2.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-[#2563eb]">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+                            <input type="file" id="pngBackgroundInput" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="handlePngUpload(event)">
+                            <button onclick="document.getElementById('pngBackgroundInput').click()" class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#191d28] hover:bg-[#212634] border border-[#2b3040] text-xs font-medium text-gray-200 transition">
+                                <span>🖼️ PNG-Hintergrund hochladen</span>
+                            </button>
+
+                            <button onclick="saveCurrentNotebook()" class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-xs font-semibold text-white shadow-sm transition">
+                                <span>+ Heft speichern</span>
+                            </button>
+                        </div>
+
+                        <div id="customBgBar" class="hidden items-center justify-between px-3 py-2 rounded-xl bg-[#111520] border border-[#25324d] text-xs">
+                            <span id="customBgName" class="text-blue-300 truncate">Hintergrundbild aktiv</span>
+                            <button onclick="removeCustomBackground()" class="text-red-400 hover:text-red-300 font-medium ml-2">Entfernen</button>
+                        </div>
+
+                        <button onclick="exportNotabilityPdf()" id="exportPdfBtn" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1c212e] hover:bg-[#242b3b] border border-[#31394d] text-xs sm:text-[13px] font-semibold text-gray-100 transition">
+                            <span>📄 Als PDF für Notability exportieren</span>
+                        </button>
+                    </div>
+
+                    <!-- AUSSEHEN ANPASSEN -->
+                    <div class="bg-[#151821] border border-[#262a34] rounded-2xl p-3.5 sm:p-4 space-y-3.5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs font-semibold text-gray-200">Aussehen anpassen</div>
+                                <div class="text-[11px] text-gray-500">Farbe, Größe, Abstände & Ränder</div>
+                            </div>
+                            <button onclick="resetAppearance()" class="text-[11px] text-gray-400 hover:text-white transition">Zurücksetzen</button>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] text-gray-400 mr-1">Tintenfarbe:</span>
+                                <button onclick="setInkColor('#1e3a8a')" class="w-6 h-6 rounded-full bg-[#1e3a8a] ring-2 ring-offset-2 ring-offset-[#151821] ring-blue-400 transition" title="Füller-Blau"></button>
+                                <button onclick="setInkColor('#111827')" class="w-6 h-6 rounded-full bg-[#111827] border border-gray-600 transition" title="Schwarz"></button>
+                                <button onclick="setInkColor('#1d4ed8')" class="w-6 h-6 rounded-full bg-[#1d4ed8] transition" title="Kugelschreiber-Blau"></button>
+                                <button onclick="setInkColor('#991b1b')" class="w-6 h-6 rounded-full bg-[#991b1b] transition" title="Rot"></button>
+                                <button onclick="setInkColor('#065f46')" class="w-6 h-6 rounded-full bg-[#065f46] transition" title="Grün"></button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                            <div>
+                                <div class="flex justify-between text-[11px] mb-1">
+                                    <span class="text-gray-400">Schriftgröße</span>
+                                    <span id="valFontSize" class="text-gray-200 font-medium">34 px</span>
+                                </div>
+                                <input id="sliderFontSize" type="range" min="18" max="62" value="34" oninput="handleControlChange()" class="w-full studio-slider">
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-[11px] mb-1">
+                                    <span class="text-gray-400">Zeilenabstand</span>
+                                    <span id="valLineHeight" class="text-gray-200 font-medium">46 px</span>
+                                </div>
+                                <input id="sliderLineHeight" type="range" min="24" max="85" value="46" oninput="handleControlChange()" class="w-full studio-slider">
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-[11px] mb-1">
+                                    <span class="text-gray-400">Buchstaben-Abstand</span>
+                                    <span id="valLetterSpacing" class="text-gray-200 font-medium">1 px</span>
+                                </div>
+                                <input id="sliderLetterSpacing" type="range" min="-4" max="14" value="1" oninput="handleControlChange()" class="w-full studio-slider">
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-[11px] mb-1">
+                                    <span class="text-gray-400">Seitenrand (Links/Oben)</span>
+                                    <span id="valMargin" class="text-gray-200 font-medium">64 px</span>
+                                </div>
+                                <input id="sliderMargin" type="range" min="20" max="140" value="64" oninput="handleControlChange()" class="w-full studio-slider">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RECHTE SPALTE: A4-VORSCHAU -->
+                <div class="xl:col-span-6 space-y-3">
+                    <div class="bg-[#151821] border border-[#262a34] rounded-2xl p-3 sm:p-4 flex flex-col items-center">
+                        <div class="w-full flex items-center justify-between mb-2.5 px-1">
+                            <span class="text-xs font-semibold text-gray-300">DIN A4 Live-Vorschau</span>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="changePreviewPage(-1)" class="px-2 py-1 rounded-lg bg-[#0f1117] border border-[#262a34] text-xs text-gray-300 hover:text-white">‹</button>
+                                <span id="pageIndicator" class="text-xs font-medium text-gray-300 px-1.5">Seite 1 / 1</span>
+                                <button onclick="changePreviewPage(1)" class="px-2 py-1 rounded-lg bg-[#0f1117] border border-[#262a34] text-xs text-gray-300 hover:text-white">›</button>
+                            </div>
+                        </div>
+
+                        <div class="w-full flex justify-center bg-[#0b0d12] border border-[#222632] rounded-xl p-2 sm:p-4 overflow-hidden">
+                            <canvas id="previewCanvas" width="794" height="1123" class="w-full max-w-[540px] h-auto rounded shadow-2xl bg-white"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ANSICHT 2: MEINE HEFTE -->
+        <main id="viewNotebooks" class="hidden flex-1 p-4 sm:p-6 max-w-5xl w-full mx-auto space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Meine gespeicherten Hefte</h2>
+                    <p class="text-xs text-gray-400">Lade ein Heft in den Editor oder lösche es direkt.</p>
+                </div>
+                <button onclick="setActiveView('write')" class="px-3.5 py-2 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-xs font-semibold text-white">+ Neues Heft</button>
+            </div>
+            <div id="notebooksGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </main>
+
+        <!-- ANSICHT 3: MEINE SCHRIFT TRAINIEREN -->
+        <main id="viewMyScript" class="hidden flex-1 p-4 sm:p-6 max-w-5xl w-full mx-auto space-y-5">
+            <div class="bg-[#151821] border border-[#262a34] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-base sm:text-lg font-bold text-white">Eigene Handschrift erstellen</h2>
+                    <p class="text-xs text-gray-400 mt-0.5">Zeichne Buchstaben und Zahlen. Du kannst pro Zeichen mehrere Varianten speichern, damit dein Text echt aussieht.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="trainedCountBadge" class="px-3 py-1.5 rounded-xl bg-[#182132] border border-[#24324d] text-xs font-semibold text-blue-300">0 Zeichen gespeichert</span>
+                    <button onclick="setActiveView('write')" class="px-3.5 py-1.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-xs font-semibold text-white">Fertig & Schreiben</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+                <div class="md:col-span-5 bg-[#151821] border border-[#262a34] rounded-2xl p-4 flex flex-col items-center space-y-3">
+                    <div class="w-full flex items-center justify-between">
+                        <span class="text-xs text-gray-400">Aktuelles Zeichen:</span>
+                        <span id="activeCharDisplay" class="text-2xl font-bold text-white bg-[#0f1117] px-3.5 py-1 rounded-xl border border-[#262a34]">a</span>
+                    </div>
+
+                    <div class="relative bg-white rounded-xl overflow-hidden border-2 border-[#2b3142]">
+                        <canvas id="glyphDrawCanvas" width="260" height="260" class="cursor-crosshair block"></canvas>
+                    </div>
+
+                    <div class="w-full grid grid-cols-2 gap-2">
+                        <button onclick="clearGlyphCanvas()" class="py-2 rounded-xl bg-[#1d222e] hover:bg-[#262d3d] text-xs font-medium text-gray-200 transition">Neu zeichnen</button>
+                        <button onclick="saveGlyphVariant()" class="py-2 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-xs font-semibold text-white transition">+ Variante speichern</button>
+                    </div>
+
+                    <div id="charVariantsList" class="w-full pt-2 border-t border-[#262a34] space-y-1.5"></div>
+                </div>
+
+                <div class="md:col-span-7 bg-[#151821] border border-[#262a34] rounded-2xl p-4 space-y-3">
+                    <div class="text-xs font-semibold text-gray-300">Zeichen auswählen (Grün = bereits trainiert)</div>
+                    <div id="alphabetGrid" class="grid grid-cols-7 sm:grid-cols-9 gap-1.5"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toastBox" class="fixed bottom-5 right-5 z-50 hidden px-4 py-2.5 rounded-xl bg-[#182132] border border-[#2d436b] text-xs font-medium text-white shadow-xl"></div>
+
+    <script>
+        const STORAGE_GLYPHS = 'schoolfucker_glyphs_v1';
+        const STORAGE_NOTEBOOKS = 'schoolfucker_notebooks_v1';
+        const CHAR_SET = 'abcdefghijklmnopqrstuvwxyzäöüßABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789.,!?-+=/():;'.split('');
+
+        let state = {
+            text: '',
+            font: 'my-script',
+            paper: 'grid',
+            title: 'Mein Heft',
+            inkColor: '#1e3a8a',
+            fontSize: 34,
+            lineHeight: 46,
+            letterSpacing: 1,
+            margin: 64,
+            customBgDataUrl: null,
+            customBgImage: null,
+            currentPage: 0,
+            seedOffset: 1,
+            glyphs: {},
+            notebooks: [],
+            activeChar: 'a'
+        };
+
+        let cachedPages = [];
+
+        function showToast(msg) {
+            const box = document.getElementById('toastBox');
+            box.textContent = msg;
+            box.classList.remove('hidden');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => box.classList.add('hidden'), 2600);
+        }
+
+        function loadStorage() {
+            try {
+                const savedGlyphs = localStorage.getItem(STORAGE_GLYPHS);
+                if (savedGlyphs) state.glyphs = JSON.parse(savedGlyphs);
+            } catch (e) {}
+
+            try {
+                const savedNb = localStorage.getItem(STORAGE_NOTEBOOKS);
+                if (savedNb) {
+                    state.notebooks = JSON.parse(savedNb);
+                } else {
+                    state.notebooks = [{
+                        id: 'nb-' + Date.now(),
+                        title: 'Mein Heft',
+                        text: '',
+                        font: 'my-script',
+                        paper: 'grid',
+                        inkColor: '#1e3a8a',
+                        fontSize: 34,
+                        lineHeight: 46,
+                        letterSpacing: 1,
+                        margin: 64,
+                        updatedAt: new Date().toLocaleDateString('de-DE')
+                    }];
+                    saveNotebooksToStorage();
+                }
+            } catch (e) {}
+        }
+
+        function saveGlyphsToStorage() {
+            try {
+                localStorage.setItem(STORAGE_GLYPHS, JSON.stringify(state.glyphs));
+            } catch (e) {
+                showToast('Speicher voll – bitte alte Varianten löschen.');
+            }
+            updateTrainedCount();
+        }
+
+        function saveNotebooksToStorage() {
+            try {
+                localStorage.setItem(STORAGE_NOTEBOOKS, JSON.stringify(state.notebooks));
+            } catch (e) {}
+            updateNotebookBadges();
+        }
+
+        function updateNotebookBadges() {
+            const count = state.notebooks.length;
+            document.getElementById('sidebarNotebookBadge').textContent = count;
+            document.getElementById('notebookCountPill').textContent = count === 1 ? '1 Heft' : `${count} Hefte`;
+        }
+
+        function updateTrainedCount() {
+            const count = Object.keys(state.glyphs).filter(k => Array.isArray(state.glyphs[k]) && state.glyphs[k].length > 0).length;
+            document.getElementById('trainedCountBadge').textContent = `${count} Zeichen gespeichert`;
+        }
+
+        function setActiveView(view) {
+            ['write', 'notebooks', 'my-script'].forEach(v => {
+                const el = document.getElementById('view' + (v === 'write' ? 'Write' : v === 'notebooks' ? 'Notebooks' : 'MyScript'));
+                const nav = document.getElementById('nav-' + v);
+                if (v === view) {
+                    el.classList.remove('hidden');
+                    nav.className = 'w-full flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium bg-[#182132] text-[#60a5fa] border border-[#24324d] transition';
+                } else {
+                    el.classList.add('hidden');
+                    nav.className = 'w-full flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium text-gray-300 hover:bg-[#171a21] hover:text-white border border-transparent transition';
+                }
+            });
+
+            const titles = { write: 'Schreiben', notebooks: 'Meine Hefte', 'my-script': 'Meine Schrift' };
+            document.getElementById('subHeaderTitle').textContent = titles[view] || 'Schreiben';
+            closeMobileSidebar();
+
+            if (view === 'notebooks') renderNotebooksList();
+            if (view === 'my-script') {
+                renderAlphabetGrid();
+                renderVariantsForChar(state.activeChar);
+            }
+            if (view === 'write') renderPreview();
+        }
+
+        // Mobile Sidebar
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('mobileSidebarBackdrop');
+        document.getElementById('mobileMenuOpenBtn').onclick = () => {
+            sidebar.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+        };
+        function closeMobileSidebar() {
+            sidebar.classList.add('-translate-x-full');
+            backdrop.classList.add('hidden');
+        }
+        document.getElementById('mobileMenuCloseBtn').onclick = closeMobileSidebar;
+        backdrop.onclick = closeMobileSidebar;
+
+        // Controls
+        function handleControlChange() {
+            state.text = document.getElementById('writeTextarea').value;
+            state.font = document.getElementById('fontSelect').value;
+            state.paper = document.getElementById('paperSelect').value;
+            state.title = document.getElementById('notebookTitleInput').value || 'Mein Heft';
+            state.fontSize = parseInt(document.getElementById('sliderFontSize').value, 10);
+            state.lineHeight = parseInt(document.getElementById('sliderLineHeight').value, 10);
+            state.letterSpacing = parseInt(document.getElementById('sliderLetterSpacing').value, 10);
+            state.margin = parseInt(document.getElementById('sliderMargin').value, 10);
+
+            document.getElementById('valFontSize').textContent = state.fontSize + ' px';
+            document.getElementById('valLineHeight').textContent = state.lineHeight + ' px';
+            document.getElementById('valLetterSpacing').textContent = state.letterSpacing + ' px';
+            document.getElementById('valMargin').textContent = state.margin + ' px';
+            document.getElementById('titlePreviewPill').textContent = 'Titel: ' + state.title;
+
+            const trimmed = state.text.trim();
+            const words = trimmed ? trimmed.split(/\s+/).length : 0;
+            document.getElementById('liveTextCounter').textContent = `${state.text.length} Zeichen · ${words} Wörter`;
+
+            renderPreview();
+        }
+
+        document.getElementById('writeTextarea').addEventListener('input', handleControlChange);
+
+        function setInkColor(hex) {
+            state.inkColor = hex;
+            renderPreview();
+        }
+
+        function clearWriteText() {
+            document.getElementById('writeTextarea').value = '';
+            state.currentPage = 0;
+            handleControlChange();
+        }
+
+        function insertPageBreak() {
+            const ta = document.getElementById('writeTextarea');
+            ta.value += (ta.value.endsWith('\n') || ta.value === '' ? '' : '\n') + '---SEITE---\n';
+            handleControlChange();
+        }
+
+        function shuffleAllVariants() {
+            state.seedOffset = Math.floor(Math.random() * 10000) + 1;
+            renderPreview();
+            showToast('Buchstaben-Varianten neu gemischt');
+        }
+
+        function resetAppearance() {
+            state.inkColor = '#1e3a8a';
+            document.getElementById('sliderFontSize').value = 34;
+            document.getElementById('sliderLineHeight').value = 46;
+            document.getElementById('sliderLetterSpacing').value = 1;
+            document.getElementById('sliderMargin').value = 64;
+            handleControlChange();
+        }
+
+        // PNG Upload
+        function handlePngUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    state.customBgDataUrl = e.target.result;
+                    state.customBgImage = img;
+                    document.getElementById('paperSelect').value = 'custom-png';
+                    document.getElementById('customBgBar').classList.remove('hidden');
+                    document.getElementById('customBgBar').classList.add('flex');
+                    document.getElementById('customBgName').textContent = 'PNG aktiv: ' + file.name;
+                    handleControlChange();
+                    showToast('PNG-Hintergrund geladen');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeCustomBackground() {
+            state.customBgDataUrl = null;
+            state.customBgImage = null;
+            document.getElementById('paperSelect').value = 'grid';
+            document.getElementById('customBgBar').classList.add('hidden');
+            document.getElementById('customBgBar').classList.remove('flex');
+            handleControlChange();
+        }
+
+        // Deterministischer Zufall für natürliche Varianten
+        function seededRandom(index) {
+            const x = Math.sin((index + 1) * 9301 + state.seedOffset * 49297) * 233280;
+            return x - Math.floor(x);
+        }
+
+        // Seitenlayout berechnen
+        function computePages() {
+            const W = 794;
+            const H = 1123;
+            const margin = state.margin;
+            const maxX = W - margin;
+            const maxY = H - margin;
+            const lineH = state.lineHeight;
+            const size = state.fontSize;
+
+            const rawBlocks = state.text.split('---SEITE---');
+            const pages = [];
+
+            rawBlocks.forEach((blockText, bIdx) => {
+                let items = [];
+                let x = margin;
+                let y = margin + size;
+                let charCounter = bIdx * 500;
+
+                const lines = blockText.split('\n');
+                lines.forEach((line, lIdx) => {
+                    const words = line.split(/(\s+)/);
+                    words.forEach(token => {
+                        if (token === '') return;
+                        const isSpace = /^\s+$/.test(token);
+                        const tokenWidth = token.length * (size * 0.46 + state.letterSpacing);
+
+                        if (!isSpace && x + tokenWidth > maxX && x > margin) {
+                            x = margin;
+                            y += lineH;
+                            if (y > maxY) {
+                                pages.push(items);
+                                items = [];
+                                y = margin + size;
+                            }
+                        }
+
+                        for (let i = 0; i < token.length; i++) {
+                            const ch = token[i];
+                            charCounter++;
+                            if (ch === ' ') {
+                                x += size * 0.34 + state.letterSpacing;
+                                continue;
+                            }
+
+                            const jitterY = (seededRandom(charCounter) - 0.5) * 2.4;
+                            const jitterRot = (seededRandom(charCounter + 77) - 0.5) * 0.06;
+                            const variants = state.glyphs[ch];
+                            const variantIdx = (variants && variants.length > 0)
+                                ? Math.floor(seededRandom(charCounter + 19) * variants.length)
+                                : -1;
+
+                            items.push({
+                                ch,
+                                x,
+                                y: y + jitterY,
+                                rot: jitterRot,
+                                variantIdx
+                            });
+
+                            x += size * 0.47 + state.letterSpacing;
+                        }
+                    });
+
+                    if (lIdx < lines.length - 1) {
+                        x = margin;
+                        y += lineH;
+                        if (y > maxY) {
+                            pages.push(items);
+                            items = [];
+                            y = margin + size;
+                        }
+                    }
+                });
+
+                pages.push(items);
+            });
+
+            if (pages.length === 0) pages.push([]);
+            return pages;
+        }
+
+        function drawPaperBackground(ctx, W, H) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, W, H);
+
+            if (state.paper === 'custom-png' && state.customBgImage) {
+                ctx.drawImage(state.customBgImage, 0, 0, W, H);
+                return;
+            }
+
+            if (state.paper === 'grid') {
+                const step = 19; // ~5mm auf A4
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                for (let x = step; x < W; x += step) {
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, H);
+                }
+                for (let y = step; y < H; y += step) {
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(W, y);
+                }
+                ctx.stroke();
+
+                // Roter Heftrand links
+                ctx.strokeStyle = '#fca5a5';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(54, 0);
+                ctx.lineTo(54, H);
+                ctx.stroke();
+            } else if (state.paper === 'lined') {
+                const step = state.lineHeight;
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 0.9;
+                ctx.beginPath();
+                for (let y = state.margin + state.fontSize + 6; y < H - 30; y += step) {
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(W, y);
+                }
+                ctx.stroke();
+
+                ctx.strokeStyle = '#fca5a5';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(54, 0);
+                ctx.lineTo(54, H);
+                ctx.stroke();
+            }
+        }
+
+        function drawStrokesGlyph(ctx, strokes, x, y, size, color) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = Math.max(1.6, size * 0.065);
+
+            const scale = size / 145;
+            const drawX = x - size * 0.22;
+            const drawY = y - size * 0.98;
+
+            strokes.forEach(stroke => {
+                if (!stroke || stroke.length < 2) return;
+                ctx.beginPath();
+                ctx.moveTo(drawX + stroke[0].x * scale, drawY + stroke[0].y * scale);
+                for (let i = 1; i < stroke.length; i++) {
+                    ctx.lineTo(drawX + stroke[i].x * scale, drawY + stroke[i].y * scale);
+                }
+                ctx.stroke();
+            });
+            ctx.restore();
+        }
+
+        function renderPageToCanvas(canvas, pageItems) {
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width;
+            const H = canvas.height;
+            ctx.clearRect(0, 0, W, H);
+
+            drawPaperBackground(ctx, W, H);
+
+            pageItems.forEach(item => {
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                ctx.rotate(item.rot);
+
+                if (state.font === 'my-script' && item.variantIdx >= 0 && state.glyphs[item.ch]?.[item.variantIdx]) {
+                    drawStrokesGlyph(ctx, state.glyphs[item.ch][item.variantIdx], 0, 0, state.fontSize, state.inkColor);
+                } else {
+                    const fallbackFamily = state.font === 'patrick' ? '"Patrick Hand", cursive' : '"Caveat", cursive';
+                    ctx.font = `${state.fontSize}px ${fallbackFamily}`;
+                    ctx.fillStyle = state.inkColor;
+                    ctx.fillText(item.ch, 0, 0);
+                }
+                ctx.restore();
+            });
+        }
+
+        function renderPreview() {
+            cachedPages = computePages();
+            if (state.currentPage >= cachedPages.length) state.currentPage = cachedPages.length - 1;
+            if (state.currentPage < 0) state.currentPage = 0;
+
+            document.getElementById('pageIndicator').textContent = `Seite ${state.currentPage + 1} / ${cachedPages.length}`;
+            const canvas = document.getElementById('previewCanvas');
+            renderPageToCanvas(canvas, cachedPages[state.currentPage] || []);
+        }
+
+        function changePreviewPage(delta) {
+            const next = state.currentPage + delta;
+            if (next >= 0 && next < cachedPages.length) {
+                state.currentPage = next;
+                renderPreview();
+            }
+        }
+
+        // PDF EXPORT FÜR NOTABILITY (Alle Seiten)
+        async function exportNotabilityPdf() {
+            const btn = document.getElementById('exportPdfBtn');
+            btn.textContent = '⏳ PDF wird erstellt...';
+            btn.disabled = true;
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const pages = computePages();
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = 1190;
+                offCanvas.height = 1684;
+
+                const scaleRatio = 1190 / 794;
+
+                for (let i = 0; i < pages.length; i++) {
+                    if (i > 0) pdf.addPage();
+                    const ctx = offCanvas.getContext('2d');
+                    ctx.save();
+                    ctx.scale(scaleRatio, scaleRatio);
+                    drawPaperBackground(ctx, 794, 1123);
+
+                    pages[i].forEach(item => {
+                        ctx.save();
+                        ctx.translate(item.x, item.y);
+                        ctx.rotate(item.rot);
+                        if (state.font === 'my-script' && item.variantIdx >= 0 && state.glyphs[item.ch]?.[item.variantIdx]) {
+                            drawStrokesGlyph(ctx, state.glyphs[item.ch][item.variantIdx], 0, 0, state.fontSize, state.inkColor);
+                        } else {
+                            const fallbackFamily = state.font === 'patrick' ? '"Patrick Hand", cursive' : '"Caveat", cursive';
+                            ctx.font = `${state.fontSize}px ${fallbackFamily}`;
+                            ctx.fillStyle = state.inkColor;
+                            ctx.fillText(item.ch, 0, 0);
+                        }
+                        ctx.restore();
+                    });
+                    ctx.restore();
+
+                    const imgData = offCanvas.toDataURL('image/jpeg', 0.94);
+                    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+                }
+
+                const safeName = (state.title || 'SchoolFucker').replace(/[^a-zA-Z0-9äöüÄÖÜ_-]/g, '_');
+                pdf.save(`${safeName}.pdf`);
+                showToast('PDF erfolgreich für Notability gespeichert!');
+            } catch (err) {
+                showToast('Fehler beim PDF-Export');
+            } finally {
+                btn.textContent = '📄 Als PDF für Notability exportieren';
+                btn.disabled = false;
+            }
+        }
+
+        // HEFTE VERWALTEN & LÖSCHEN
+        function saveCurrentNotebook() {
+            const title = (document.getElementById('notebookTitleInput').value || 'Mein Heft').trim();
+            const existingIdx = state.notebooks.findIndex(n => n.title === title);
+            const entry = {
+                id: existingIdx >= 0 ? state.notebooks[existingIdx].id : 'nb-' + Date.now(),
+                title,
+                text: state.text,
+                font: state.font,
+                paper: state.paper,
+                inkColor: state.inkColor,
+                fontSize: state.fontSize,
+                lineHeight: state.lineHeight,
+                letterSpacing: state.letterSpacing,
+                margin: state.margin,
+                updatedAt: new Date().toLocaleDateString('de-DE')
+            };
+
+            if (existingIdx >= 0) {
+                state.notebooks[existingIdx] = entry;
+            } else {
+                state.notebooks.unshift(entry);
+            }
+            saveNotebooksToStorage();
+            showToast(`Heft "${title}" gespeichert`);
+        }
+
+        function renderNotebooksList() {
+            const grid = document.getElementById('notebooksGrid');
+            if (state.notebooks.length === 0) {
+                grid.innerHTML = `<div class="col-span-full bg-[#151821] border border-[#262a34] rounded-2xl p-6 text-center text-xs text-gray-400">Noch keine Hefte gespeichert.</div>`;
+                return;
+            }
+
+            grid.innerHTML = state.notebooks.map(nb => `
+                <div class="bg-[#151821] border border-[#262a34] rounded-2xl p-4 flex flex-col justify-between space-y-3">
+                    <div>
+                        <div class="flex items-start justify-between gap-2">
+                            <h3 class="font-bold text-sm text-white truncate">${nb.title}</h3>
+                            <span class="text-[10px] text-gray-400 shrink-0">${nb.updatedAt || ''}</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2 line-clamp-3">${nb.text ? nb.text.replace(/</g, '&lt;') : 'Leeres Heft'}</p>
+                    </div>
+                    <div class="flex items-center gap-2 pt-2 border-t border-[#262a34]">
+                        <button onclick="openNotebook('${nb.id}')" class="flex-1 py-1.5 rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] text-xs font-semibold text-white transition">Öffnen</button>
+                        <button onclick="deleteNotebook('${nb.id}')" class="px-3 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-900/70 border border-red-800/50 text-xs font-medium text-red-300 transition">Löschen</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openNotebook(id) {
+            const nb = state.notebooks.find(n => n.id === id);
+            if (!nb) return;
+            document.getElementById('writeTextarea').value = nb.text || '';
+            document.getElementById('notebookTitleInput').value = nb.title || 'Mein Heft';
+            document.getElementById('fontSelect').value = nb.font || 'my-script';
+            document.getElementById('paperSelect').value = nb.paper || 'grid';
+            document.getElementById('sliderFontSize').value = nb.fontSize || 34;
+            document.getElementById('sliderLineHeight').value = nb.lineHeight || 46;
+            document.getElementById('sliderLetterSpacing').value = nb.letterSpacing ?? 1;
+            document.getElementById('sliderMargin').value = nb.margin || 64;
+            state.inkColor = nb.inkColor || '#1e3a8a';
+            handleControlChange();
+            setActiveView('write');
+        }
+
+        function deleteNotebook(id) {
+            state.notebooks = state.notebooks.filter(n => n.id !== id);
+            saveNotebooksToStorage();
+            renderNotebooksList();
+            showToast('Heft gelöscht');
+        }
+
+        // HANDSCHRIFT-ZEICHENPAD (Apple Pencil & Touch)
+        const glyphCanvas = document.getElementById('glyphDrawCanvas');
+        const gCtx = glyphCanvas.getContext('2d');
+        let currentStrokes = [];
+        let activeStroke = null;
+        let isDrawing = false;
+
+        function drawGlyphGuidelines() {
+            gCtx.clearRect(0, 0, 260, 260);
+            gCtx.fillStyle = '#ffffff';
+            gCtx.fillRect(0, 0, 260, 260);
+
+            // Hilfslinien (Grundlinie & Mittellinie)
+            gCtx.strokeStyle = '#e2e8f0';
+            gCtx.lineWidth = 1;
+            gCtx.setLineDash([4, 4]);
+            gCtx.beginPath();
+            gCtx.moveTo(0, 80); gCtx.lineTo(260, 80);
+            gCtx.moveTo(0, 140); gCtx.lineTo(260, 140);
+            gCtx.stroke();
+
+            gCtx.setLineDash([]);
+            gCtx.strokeStyle = '#93c5fd';
+            gCtx.beginPath();
+            gCtx.moveTo(0, 195); gCtx.lineTo(260, 195);
+            gCtx.stroke();
+
+            // Aktuelle Striche zeichnen
+            gCtx.strokeStyle = '#1e3a8a';
+            gCtx.lineWidth = 5;
+            gCtx.lineCap = 'round';
+            gCtx.lineJoin = 'round';
+            currentStrokes.forEach(s => {
+                if (s.length < 2) return;
+                gCtx.beginPath();
+                gCtx.moveTo(s[0].x, s[0].y);
+                for (let i = 1; i < s.length; i++) gCtx.lineTo(s[i].x, s[i].y);
+                gCtx.stroke();
+            });
+        }
+
+        function getCanvasPoint(e) {
+            const rect = glyphCanvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: Math.round((clientX - rect.left) * (260 / rect.width)),
+                y: Math.round((clientY - rect.top) * (260 / rect.height))
+            };
+        }
+
+        glyphCanvas.addEventListener('pointerdown', e => {
+            isDrawing = true;
+            activeStroke = [getCanvasPoint(e)];
+            currentStrokes.push(activeStroke);
+            drawGlyphGuidelines();
+        });
+        glyphCanvas.addEventListener('pointermove', e => {
+            if (!isDrawing || !activeStroke) return;
+            activeStroke.push(getCanvasPoint(e));
+            drawGlyphGuidelines();
+        });
+        window.addEventListener('pointerup', () => {
+            isDrawing = false;
+            activeStroke = null;
+        });
+
+        function clearGlyphCanvas() {
+            currentStrokes = [];
+            drawGlyphGuidelines();
+        }
+
+        function selectCharToTrain(ch) {
+            state.activeChar = ch;
+            document.getElementById('activeCharDisplay').textContent = ch;
+            clearGlyphCanvas();
+            renderAlphabetGrid();
+            renderVariantsForChar(ch);
+        }
+
+        function saveGlyphVariant() {
+            if (currentStrokes.length === 0) {
+                showToast('Zeichne zuerst den Buchstaben!');
+                return;
+            }
+            if (!state.glyphs[state.activeChar]) state.glyphs[state.activeChar] = [];
+            state.glyphs[state.activeChar].push(JSON.parse(JSON.stringify(currentStrokes)));
+            saveGlyphsToStorage();
+            clearGlyphCanvas();
+            renderAlphabetGrid();
+            renderVariantsForChar(state.activeChar);
+            showToast(`Variante für "${state.activeChar}" gespeichert`);
+        }
+
+        function deleteGlyphVariant(ch, idx) {
+            if (!state.glyphs[ch]) return;
+            state.glyphs[ch].splice(idx, 1);
+            if (state.glyphs[ch].length === 0) delete state.glyphs[ch];
+            saveGlyphsToStorage();
+            renderAlphabetGrid();
+            renderVariantsForChar(ch);
+        }
+
+        function renderAlphabetGrid() {
+            const grid = document.getElementById('alphabetGrid');
+            grid.innerHTML = CHAR_SET.map(ch => {
+                const count = state.glyphs[ch]?.length || 0;
+                const isActive = ch === state.activeChar;
+                let cls = 'py-2 rounded-lg text-xs font-bold border transition ';
+                if (isActive) cls += 'bg-[#2563eb] text-white border-blue-400';
+                else if (count > 0) cls += 'bg-emerald-950/60 text-emerald-300 border-emerald-700/60';
+                else cls += 'bg-[#0f1117] text-gray-300 border-[#262a34] hover:border-gray-500';
+                return `<button onclick="selectCharToTrain('${ch.replace(/'/g, "\\'")}')" class="${cls}">${ch}${count > 1 ? `<span class="text-[9px] ml-0.5 opacity-80">${count}</span>` : ''}</button>`;
+            }).join('');
+        }
+
+        function renderVariantsForChar(ch) {
+            const list = document.getElementById('charVariantsList');
+            const variants = state.glyphs[ch] || [];
+            if (variants.length === 0) {
+                list.innerHTML = `<div class="text-[11px] text-gray-500">Noch keine Variante für "${ch}" gespeichert.</div>`;
+                return;
+            }
+            list.innerHTML = `<div class="text-[11px] text-gray-400 mb-1">Gespeicherte Varianten für "${ch}":</div>` +
+                variants.map((_, idx) => `
+                    <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#0f1117] border border-[#262a34] text-xs">
+                        <span class="text-gray-200">Variante #${idx + 1}</span>
+                        <button onclick="deleteGlyphVariant('${ch.replace(/'/g, "\\'")}', ${idx})" class="text-red-400 hover:text-red-300 text-[11px]">Löschen</button>
+                    </div>
+                `).join('');
+        }
+
+        // INIT
+        loadStorage();
+        updateNotebookBadges();
+        updateTrainedCount();
+        drawGlyphGuidelines();
+        handleControlChange();
+    </script>
+</body>
+</html>
