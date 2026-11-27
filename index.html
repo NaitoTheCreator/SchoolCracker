@@ -5,7 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SchoolFucker – Handschrift & Notability PDF Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "pdf-lib": "/vendor/pdf-lib.esm.min.js",
+          "opentype.js": "/vendor/opentype.min.mjs"
+        }
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Inter:wght@400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
@@ -174,32 +181,33 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             <div>
-                                <label class="block text-[11px] text-gray-400 mb-1">Handschrift</label>
-                                <select id="fontSelect" onchange="handleControlChange()" class="w-full bg-[#0f1117] border border-[#262a34] rounded-xl px-2.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-[#2563eb]">
+                                <label for="fontSelect" class="block text-[11px] text-gray-400 mb-1">Handschrift</label>
+                                <select id="fontSelect" class="w-full bg-[#0f1117] border border-[#262a34] rounded-xl px-2.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-[#2563eb]">
                                     <option value="my-script">My handwriting (Eigene Schrift)</option>
                                     <option value="caveat">Schüler-Schrift (Caveat)</option>
                                     <option value="patrick">Ordentliche Druckschrift</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[11px] text-gray-400 mb-1">Papier</label>
-                                <select id="paperSelect" onchange="handleControlChange()" class="w-full bg-[#0f1117] border border-[#262a34] rounded-xl px-2.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-[#2563eb]">
+                                <label for="paperSelect" class="block text-[11px] text-gray-400 mb-1">Papier / Vorlage</label>
+                                <select id="paperSelect" class="w-full bg-[#0f1117] border border-[#262a34] rounded-xl px-2.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-[#2563eb]">
                                     <option value="grid">Kariert (5 mm)</option>
                                     <option value="lined">Liniert</option>
                                     <option value="blank">Blanko (Weiß)</option>
-                                    <option value="custom-png">Eigenes PNG-Hintergrundbild</option>
+                                    <option value="custom-png">Eigenes Bild (PNG/JPG)</option>
+                                    <option value="imported-pdf">Importiertes PDF-Arbeitsblatt</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[11px] text-gray-400 mb-1">Titel des Hefts</label>
-                                <input id="notebookTitleInput" type="text" value="Mein Heft" oninput="handleControlChange()" class="w-full bg-[#0f1117] border border-[#262a34] rounded-xl px-2.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-[#2563eb]">
+                                <label for="notebookTitleInput" class="block text-[11px] text-gray-400 mb-1">Titel des Hefts</label>
+                                <input id="notebookTitleInput" type="text" value="Mein Heft" class="w-full bg-[#0f1117] border border-[#262a34] rounded-xl px-2.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-[#2563eb]">
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
-                            <input type="file" id="pngBackgroundInput" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="handlePngUpload(event)">
-                            <button onclick="document.getElementById('pngBackgroundInput').click()" class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#191d28] hover:bg-[#212634] border border-[#2b3040] text-xs font-medium text-gray-200 transition">
-                                <span>🖼️ PNG-Hintergrund hochladen</span>
+                            <input type="file" id="sheetFileInput" accept="application/pdf,image/png,image/jpeg,image/webp" class="hidden">
+                            <button onclick="document.getElementById('sheetFileInput').click()" class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#191d28] hover:bg-[#212634] border border-[#2b3040] text-xs font-medium text-gray-200 transition">
+                                <span>📄 PDF-Blatt / PNG hochladen</span>
                             </button>
 
                             <button onclick="saveCurrentNotebook()" class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-xs font-semibold text-white shadow-sm transition">
@@ -208,13 +216,64 @@
                         </div>
 
                         <div id="customBgBar" class="hidden items-center justify-between px-3 py-2 rounded-xl bg-[#111520] border border-[#25324d] text-xs">
-                            <span id="customBgName" class="text-blue-300 truncate">Hintergrundbild aktiv</span>
+                            <span id="customBgName" class="text-blue-300 truncate">Hintergrund aktiv</span>
                             <button onclick="removeCustomBackground()" class="text-red-400 hover:text-red-300 font-medium ml-2">Entfernen</button>
                         </div>
 
-                        <button onclick="exportNotabilityPdf()" id="exportPdfBtn" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1c212e] hover:bg-[#242b3b] border border-[#31394d] text-xs sm:text-[13px] font-semibold text-gray-100 transition">
-                            <span>📄 Als Vektor-PDF für Notability exportieren</span>
+                        <!-- NOTABILITY EXPORT MODUS -->
+                        <div class="bg-[#0f1117] border border-[#262a34] rounded-xl p-3 space-y-2.5">
+                            <div>
+                                <label for="exportModeSelect" class="block text-[11px] text-gray-400 mb-1">Notability-Exportmodus</label>
+                                <select id="exportModeSelect" class="w-full bg-[#151821] border border-[#262a34] rounded-lg px-2.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-[#2563eb]">
+                                    <option value="notability-editable">Notability-PDF (Ink-Annotationen + markierbarer Text)</option>
+                                    <option value="template-only">Nur Blatt-Vorlage (Papier/Arbeitsblatt leer für Notability)</option>
+                                    <option value="acroform-worksheet">AcroForm-Arbeitsblatt (Editierbare Felder für Acrobat/PDF-Expert)</option>
+                                    <option value="notability-vector">Klassisches Vektor-PDF (Feste Pfade + Text-Layer)</option>
+                                </select>
+                            </div>
+                            <label class="flex items-center gap-2 text-[11px] text-gray-300 cursor-pointer select-none">
+                                <input id="editableFieldsCheckbox" type="checkbox" class="rounded border-[#262a34] bg-[#151821] text-[#2563eb] focus:ring-0">
+                                <span>Text-Boxen zusätzlich als AcroForm-Felder exportieren (nicht für Notability empfohlen)</span>
+                            </label>
+                            <p class="text-[11px] leading-snug text-gray-400">
+                                Hinweis: Für <strong class="text-gray-200">„Nach Notability importieren“</strong> nur <strong class="text-gray-300">PDF</strong> oder <strong class="text-gray-300">Transparentes PNG</strong> teilen (Schriftdateien meldet Notability sonst als „Dateityp nicht unterstützt“). Für bearbeitbaren Text in Notability: <strong class="text-emerald-300">iPad Schrift-Profil</strong> laden → <em>Einstellungen → Profil geladen → Installieren</em> → in Notability beim <em>Text-Tool (Tt)</em> auswählen.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button onclick="exportNotabilityPdf()" id="exportPdfBtn" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#1c212e] hover:bg-[#242b3b] border border-[#31394d] text-xs font-semibold text-gray-100 transition">
+                                <span>📄 Als PDF exportieren</span>
+                            </button>
+                            <button onclick="exportTransparentHandwritingPng()" id="exportPngBtn" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#182132] hover:bg-[#202d44] border border-[#2d436b] text-xs font-semibold text-blue-200 transition">
+                                <span>🖼️ Transparentes PNG (Notability)</span>
+                            </button>
+                        </div>
+
+                        <button onclick="copyTransparentHandwritingPng()" id="copyPngBtn" class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#162238] hover:bg-[#1e2f4d] border border-[#2f4978] text-xs font-semibold text-sky-200 transition">
+                            <span>📋 Handschrift kopieren (→ in Notability „Einsetzen“)</span>
                         </button>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button onclick="exportHandwritingMobileConfig()" id="exportMobileConfigBtn" class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#141e2e] hover:bg-[#1b2a40] border border-[#273d5e] text-xs font-semibold text-emerald-300 transition">
+                                <span>📲 iPad Schrift-Profil (.mobileconfig)</span>
+                            </button>
+                            <button onclick="exportHandwritingTtf()" id="exportTtfBtn" class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#131822] hover:bg-[#1b2230] border border-[#262e3d] text-xs font-medium text-gray-200 transition">
+                                <span>🔤 Schrift-Datei (.ttf)</span>
+                            </button>
+                        </div>
+                        <p class="text-[11px] leading-snug text-gray-400">
+                            Notability-Tipp: Profil installieren → in Notability <span class="text-gray-200 font-medium">Tt</span> tippen → in der Tastatur-Leiste <span class="text-gray-200 font-medium">Helvetica</span> antippen → deine Schrift wählen.
+                        </p>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="exportProjectJson()" class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#11141c] hover:bg-[#191d28] border border-[#262a34] text-[11px] font-medium text-gray-300 transition">
+                                <span>💾 Projekt speichern (.json)</span>
+                            </button>
+                            <input type="file" id="projectJsonInput" accept="application/json,.json" class="hidden">
+                            <button onclick="document.getElementById('projectJsonInput').click()" class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#11141c] hover:bg-[#191d28] border border-[#262a34] text-[11px] font-medium text-gray-300 transition">
+                                <span>📂 Projekt weiterbearbeiten</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- AUSSEHEN ANPASSEN -->
@@ -230,61 +289,101 @@
                         <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
                             <div class="flex items-center gap-2">
                                 <span class="text-[11px] text-gray-400 mr-1">Tintenfarbe:</span>
-                                <button onclick="setInkColor('#1e3a8a')" class="w-6 h-6 rounded-full bg-[#1e3a8a] ring-2 ring-offset-2 ring-offset-[#151821] ring-blue-400 transition" title="Füller-Blau"></button>
-                                <button onclick="setInkColor('#111827')" class="w-6 h-6 rounded-full bg-[#111827] border border-gray-600 transition" title="Schwarz"></button>
-                                <button onclick="setInkColor('#1d4ed8')" class="w-6 h-6 rounded-full bg-[#1d4ed8] transition" title="Kugelschreiber-Blau"></button>
-                                <button onclick="setInkColor('#991b1b')" class="w-6 h-6 rounded-full bg-[#991b1b] transition" title="Rot"></button>
-                                <button onclick="setInkColor('#065f46')" class="w-6 h-6 rounded-full bg-[#065f46] transition" title="Grün"></button>
+                                <button onclick="setInkColor('#1e3a8a')" data-ink-swatch="#1e3a8a" aria-label="Tintenfarbe Füller-Blau" class="w-6 h-6 rounded-full bg-[#1e3a8a] ring-2 ring-offset-2 ring-offset-[#151821] ring-blue-400 transition" title="Füller-Blau"></button>
+                                <button onclick="setInkColor('#111827')" data-ink-swatch="#111827" aria-label="Tintenfarbe Schwarz" class="w-6 h-6 rounded-full bg-[#111827] border border-gray-600 transition" title="Schwarz"></button>
+                                <button onclick="setInkColor('#1d4ed8')" data-ink-swatch="#1d4ed8" aria-label="Tintenfarbe Kugelschreiber-Blau" class="w-6 h-6 rounded-full bg-[#1d4ed8] transition" title="Kugelschreiber-Blau"></button>
+                                <button onclick="setInkColor('#991b1b')" data-ink-swatch="#991b1b" aria-label="Tintenfarbe Rot" class="w-6 h-6 rounded-full bg-[#991b1b] transition" title="Rot"></button>
+                                <button onclick="setInkColor('#065f46')" data-ink-swatch="#065f46" aria-label="Tintenfarbe Grün" class="w-6 h-6 rounded-full bg-[#065f46] transition" title="Grün"></button>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
                             <div>
                                 <div class="flex justify-between text-[11px] mb-1">
-                                    <span class="text-gray-400">Schriftgröße</span>
+                                    <label for="sliderFontSize" class="text-gray-400">Schriftgröße</label>
                                     <span id="valFontSize" class="text-gray-200 font-medium">34 px</span>
                                 </div>
-                                <input id="sliderFontSize" type="range" min="18" max="62" value="34" oninput="handleControlChange()" class="w-full studio-slider">
+                                <input id="sliderFontSize" type="range" min="18" max="62" value="34" class="w-full studio-slider">
                             </div>
                             <div>
                                 <div class="flex justify-between text-[11px] mb-1">
-                                    <span class="text-gray-400">Zeilenabstand</span>
+                                    <label for="sliderLineHeight" class="text-gray-400">Zeilenabstand</label>
                                     <span id="valLineHeight" class="text-gray-200 font-medium">46 px</span>
                                 </div>
-                                <input id="sliderLineHeight" type="range" min="24" max="85" value="46" oninput="handleControlChange()" class="w-full studio-slider">
+                                <input id="sliderLineHeight" type="range" min="24" max="85" value="46" class="w-full studio-slider">
                             </div>
                             <div>
                                 <div class="flex justify-between text-[11px] mb-1">
-                                    <span class="text-gray-400">Buchstaben-Abstand</span>
-                                    <span id="valLetterSpacing" class="text-gray-200 font-medium">1 px</span>
+                                    <label for="sliderLetterSpacing" class="text-gray-400">Buchstaben-Abstand</label>
+                                    <span id="valLetterSpacing" class="text-gray-200 font-medium">0 px</span>
                                 </div>
-                                <input id="sliderLetterSpacing" type="range" min="-4" max="14" value="1" oninput="handleControlChange()" class="w-full studio-slider">
+                                <input id="sliderLetterSpacing" type="range" min="-6" max="12" value="0" class="w-full studio-slider">
                             </div>
                             <div>
                                 <div class="flex justify-between text-[11px] mb-1">
-                                    <span class="text-gray-400">Seitenrand (Links/Oben)</span>
+                                    <label for="sliderMargin" class="text-gray-400">Seitenrand (Links/Oben)</label>
                                     <span id="valMargin" class="text-gray-200 font-medium">64 px</span>
                                 </div>
-                                <input id="sliderMargin" type="range" min="20" max="140" value="64" oninput="handleControlChange()" class="w-full studio-slider">
+                                <input id="sliderMargin" type="range" min="20" max="140" value="64" class="w-full studio-slider">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- RECHTE SPALTE: A4-VORSCHAU -->
+                <!-- RECHTE SPALTE: A4-VORSCHAU & BLATT-EDITOR -->
                 <div class="xl:col-span-6 space-y-3">
-                    <div class="bg-[#151821] border border-[#262a34] rounded-2xl p-3 sm:p-4 flex flex-col items-center">
-                        <div class="w-full flex items-center justify-between mb-2.5 px-1">
-                            <span class="text-xs font-semibold text-gray-300">DIN A4 Live-Vorschau</span>
+                    <div class="bg-[#151821] border border-[#262a34] rounded-2xl p-3 sm:p-4 flex flex-col items-center space-y-2.5">
+                        <div class="w-full flex flex-wrap items-center justify-between gap-2 px-1">
+                            <span class="text-xs font-semibold text-gray-300">DIN A4 Blatt-Editor & Vorschau</span>
                             <div class="flex items-center gap-1.5">
-                                <button onclick="changePreviewPage(-1)" class="px-2 py-1 rounded-lg bg-[#0f1117] border border-[#262a34] text-xs text-gray-300 hover:text-white">‹</button>
-                                <span id="pageIndicator" class="text-xs font-medium text-gray-300 px-1.5">Seite 1 / 1</span>
-                                <button onclick="changePreviewPage(1)" class="px-2 py-1 rounded-lg bg-[#0f1117] border border-[#262a34] text-xs text-gray-300 hover:text-white">›</button>
+                                <button onclick="changePreviewPage(-1)" aria-label="Vorheriges Blatt" class="px-2 py-1 rounded-lg bg-[#0f1117] border border-[#262a34] text-xs text-gray-300 hover:text-white">‹</button>
+                                <span id="pageIndicator" class="text-xs font-medium text-gray-300 px-1.5">Blatt 1 / 1</span>
+                                <button onclick="changePreviewPage(1)" aria-label="Nächstes Blatt" class="px-2 py-1 rounded-lg bg-[#0f1117] border border-[#262a34] text-xs text-gray-300 hover:text-white">›</button>
+                                <button onclick="addBlankSheet()" aria-label="Neues Blatt hinzufügen" class="px-2 py-1 rounded-lg bg-[#182132] border border-[#283a5e] text-xs font-medium text-blue-300 hover:text-white transition">+ Blatt</button>
+                                <button onclick="deleteCurrentSheet()" aria-label="Aktuelles Blatt löschen" class="px-2 py-1 rounded-lg bg-[#0f1117] border border-[#262a34] text-xs text-gray-400 hover:text-red-300 transition">🗑️ Blatt</button>
                             </div>
                         </div>
 
+                        <!-- WERKZEUGLEISTE ZUM DIREKTEN BEARBEITEN -->
+                        <div class="w-full flex flex-wrap items-center justify-between gap-1.5 bg-[#0f1117] border border-[#262a34] rounded-xl p-1.5">
+                            <div class="flex flex-wrap items-center gap-1">
+                                <button onclick="setCanvasTool('select')" data-sheet-tool="select" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#2563eb] text-white transition flex items-center gap-1.5">
+                                    <span>🖱️ Auswählen</span>
+                                </button>
+                                <button onclick="setCanvasTool('textbox')" data-sheet-tool="textbox" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#0f1117] border border-[#262a34] text-gray-300 hover:text-white transition flex items-center gap-1.5">
+                                    <span>T+ Textbox auf Blatt</span>
+                                </button>
+                                <button onclick="setCanvasTool('pen')" data-sheet-tool="pen" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#0f1117] border border-[#262a34] text-gray-300 hover:text-white transition flex items-center gap-1.5">
+                                    <span>✏️ Stift</span>
+                                </button>
+                                <button onclick="setCanvasTool('eraser')" data-sheet-tool="eraser" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#0f1117] border border-[#262a34] text-gray-300 hover:text-white transition flex items-center gap-1.5" title="Löscht Striche, Textboxen und getippte Wörter">
+                                    <span>🧹 Radierer</span>
+                                </button>
+                                <button onclick="setCanvasTool('whiteout')" data-sheet-tool="whiteout" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#0f1117] border border-[#262a34] text-gray-300 hover:text-white transition flex items-center gap-1.5" title="Weiß überdeckend malen (z. B. über PDF-Arbeitsblätter)">
+                                    <span>⬜ Tipp-Ex</span>
+                                </button>
+                            </div>
+                            <button onclick="undoSheetAction()" aria-label="Aktion rückgängig machen" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#171a21] border border-[#262a34] text-gray-300 hover:text-white transition">
+                                <span>↶ Rückgängig</span>
+                            </button>
+                        </div>
+
+                        <!-- AUSGEWÄHLTE TEXTBOX BEARBEITEN -->
+                        <div id="selectedBoxInspector" class="hidden w-full bg-[#111520] border border-[#25324d] rounded-xl p-2.5 space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[11px] font-semibold text-blue-300">Ausgewählte Textbox auf dem Blatt</span>
+                                <div class="flex items-center gap-2">
+                                    <label for="selectedBoxFontSize" class="text-[11px] text-gray-400">Größe:</label>
+                                    <input id="selectedBoxFontSize" type="range" min="16" max="56" value="30" class="w-24 studio-slider">
+                                    <span id="selectedBoxFontSizeVal" class="text-[11px] text-gray-200 w-10 text-right">30 px</span>
+                                    <button id="deleteSelectedBoxBtn" class="px-2 py-1 rounded-lg bg-red-950/60 border border-red-800/50 text-[11px] font-medium text-red-300 hover:bg-red-900/70">Löschen</button>
+                                </div>
+                            </div>
+                            <textarea id="selectedBoxTextarea" rows="2" placeholder="Antwort direkt auf das Blatt schreiben..." class="w-full bg-[#0b0d12] border border-[#262a34] rounded-lg px-2.5 py-1.5 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-[#2563eb]"></textarea>
+                        </div>
+
                         <div class="w-full flex justify-center bg-[#0b0d12] border border-[#222632] rounded-xl p-2 sm:p-4 overflow-hidden">
-                            <canvas id="previewCanvas" width="794" height="1123" class="w-full max-w-[540px] h-auto rounded shadow-2xl bg-white"></canvas>
+                            <canvas id="previewCanvas" data-testid="preview-canvas" width="794" height="1123" class="w-full max-w-[540px] h-auto rounded shadow-2xl bg-white"></canvas>
                         </div>
                     </div>
                 </div>
@@ -310,8 +409,10 @@
                     <h2 class="text-base sm:text-lg font-bold text-white">Eigene Handschrift erstellen</h2>
                     <p class="text-xs text-gray-400 mt-0.5">Zeichne Buchstaben und Zahlen. Du kannst pro Zeichen mehrere Varianten speichern, damit dein Text echt aussieht.</p>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <span id="trainedCountBadge" class="px-3 py-1.5 rounded-xl bg-[#182132] border border-[#24324d] text-xs font-semibold text-blue-300">0 Zeichen gespeichert</span>
+                    <button onclick="exportHandwritingMobileConfig()" id="exportMobileConfigScriptBtn" class="px-3 py-1.5 rounded-xl bg-[#141e2e] hover:bg-[#1b2a40] border border-[#273d5e] text-xs font-semibold text-emerald-300 transition">📲 iPad-Profil</button>
+                    <button onclick="exportHandwritingTtf()" id="exportTtfScriptBtn" class="px-3 py-1.5 rounded-xl bg-[#131822] hover:bg-[#1b2230] border border-[#262e3d] text-xs font-medium text-gray-200 transition">🔤 .ttf</button>
                     <button onclick="setActiveView('write')" class="px-3.5 py-1.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-xs font-semibold text-white">Fertig & Schreiben</button>
                 </div>
             </div>
@@ -324,7 +425,7 @@
                     </div>
 
                     <div class="relative bg-white rounded-xl overflow-hidden border-2 border-[#2b3142]">
-                        <canvas id="glyphDrawCanvas" width="260" height="260" class="cursor-crosshair block"></canvas>
+                        <canvas id="glyphDrawCanvas" data-testid="glyph-canvas" width="260" height="260" class="cursor-crosshair block"></canvas>
                     </div>
 
                     <div class="w-full grid grid-cols-2 gap-2">
@@ -346,808 +447,6 @@
     <!-- TOAST -->
     <div id="toastBox" class="fixed bottom-5 right-5 z-50 hidden px-4 py-2.5 rounded-xl bg-[#182132] border border-[#2d436b] text-xs font-medium text-white shadow-xl"></div>
 
-    <script>
-        const STORAGE_GLYPHS = 'schoolfucker_glyphs_v1';
-        const STORAGE_NOTEBOOKS = 'schoolfucker_notebooks_v1';
-        const CHAR_SET = 'abcdefghijklmnopqrstuvwxyzäöüßABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789.,!?-+=/():;'.split('');
-
-        let state = {
-            text: '',
-            font: 'my-script',
-            paper: 'grid',
-            title: 'Mein Heft',
-            inkColor: '#1e3a8a',
-            fontSize: 34,
-            lineHeight: 46,
-            letterSpacing: 1,
-            margin: 64,
-            customBgDataUrl: null,
-            customBgImage: null,
-            currentPage: 0,
-            seedOffset: 1,
-            glyphs: {},
-            notebooks: [],
-            activeChar: 'a'
-        };
-
-        let cachedPages = [];
-
-        function showToast(msg) {
-            const box = document.getElementById('toastBox');
-            box.textContent = msg;
-            box.classList.remove('hidden');
-            clearTimeout(window._toastTimer);
-            window._toastTimer = setTimeout(() => box.classList.add('hidden'), 2600);
-        }
-
-        function loadStorage() {
-            try {
-                const savedGlyphs = localStorage.getItem(STORAGE_GLYPHS);
-                if (savedGlyphs) state.glyphs = JSON.parse(savedGlyphs);
-            } catch (e) {}
-
-            try {
-                const savedNb = localStorage.getItem(STORAGE_NOTEBOOKS);
-                if (savedNb) {
-                    state.notebooks = JSON.parse(savedNb);
-                } else {
-                    state.notebooks = [{
-                        id: 'nb-' + Date.now(),
-                        title: 'Mein Heft',
-                        text: '',
-                        font: 'my-script',
-                        paper: 'grid',
-                        inkColor: '#1e3a8a',
-                        fontSize: 34,
-                        lineHeight: 46,
-                        letterSpacing: 1,
-                        margin: 64,
-                        updatedAt: new Date().toLocaleDateString('de-DE')
-                    }];
-                    saveNotebooksToStorage();
-                }
-            } catch (e) {}
-        }
-
-        function saveGlyphsToStorage() {
-            try {
-                localStorage.setItem(STORAGE_GLYPHS, JSON.stringify(state.glyphs));
-            } catch (e) {
-                showToast('Speicher voll – bitte alte Varianten löschen.');
-            }
-            updateTrainedCount();
-        }
-
-        function saveNotebooksToStorage() {
-            try {
-                localStorage.setItem(STORAGE_NOTEBOOKS, JSON.stringify(state.notebooks));
-            } catch (e) {}
-            updateNotebookBadges();
-        }
-
-        function updateNotebookBadges() {
-            const count = state.notebooks.length;
-            document.getElementById('sidebarNotebookBadge').textContent = count;
-            document.getElementById('notebookCountPill').textContent = count === 1 ? '1 Heft' : `${count} Hefte`;
-        }
-
-        function updateTrainedCount() {
-            const count = Object.keys(state.glyphs).filter(k => Array.isArray(state.glyphs[k]) && state.glyphs[k].length > 0).length;
-            document.getElementById('trainedCountBadge').textContent = `${count} Zeichen gespeichert`;
-        }
-
-        function setActiveView(view) {
-            ['write', 'notebooks', 'my-script'].forEach(v => {
-                const el = document.getElementById('view' + (v === 'write' ? 'Write' : v === 'notebooks' ? 'Notebooks' : 'MyScript'));
-                const nav = document.getElementById('nav-' + v);
-                if (v === view) {
-                    el.classList.remove('hidden');
-                    nav.className = 'w-full flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium bg-[#182132] text-[#60a5fa] border border-[#24324d] transition';
-                } else {
-                    el.classList.add('hidden');
-                    nav.className = 'w-full flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium text-gray-300 hover:bg-[#171a21] hover:text-white border border-transparent transition';
-                }
-            });
-
-            const titles = { write: 'Schreiben', notebooks: 'Meine Hefte', 'my-script': 'Meine Schrift' };
-            document.getElementById('subHeaderTitle').textContent = titles[view] || 'Schreiben';
-            closeMobileSidebar();
-
-            if (view === 'notebooks') renderNotebooksList();
-            if (view === 'my-script') {
-                renderAlphabetGrid();
-                renderVariantsForChar(state.activeChar);
-            }
-            if (view === 'write') renderPreview();
-        }
-
-        const sidebar = document.getElementById('sidebar');
-        const backdrop = document.getElementById('mobileSidebarBackdrop');
-        document.getElementById('mobileMenuOpenBtn').onclick = () => {
-            sidebar.classList.remove('-translate-x-full');
-            backdrop.classList.remove('hidden');
-        };
-        function closeMobileSidebar() {
-            sidebar.classList.add('-translate-x-full');
-            backdrop.classList.add('hidden');
-        }
-        document.getElementById('mobileMenuCloseBtn').onclick = closeMobileSidebar;
-        backdrop.onclick = closeMobileSidebar;
-
-        function handleControlChange() {
-            state.text = document.getElementById('writeTextarea').value;
-            state.font = document.getElementById('fontSelect').value;
-            state.paper = document.getElementById('paperSelect').value;
-            state.title = document.getElementById('notebookTitleInput').value || 'Mein Heft';
-            state.fontSize = parseInt(document.getElementById('sliderFontSize').value, 10);
-            state.lineHeight = parseInt(document.getElementById('sliderLineHeight').value, 10);
-            state.letterSpacing = parseInt(document.getElementById('sliderLetterSpacing').value, 10);
-            state.margin = parseInt(document.getElementById('sliderMargin').value, 10);
-
-            document.getElementById('valFontSize').textContent = state.fontSize + ' px';
-            document.getElementById('valLineHeight').textContent = state.lineHeight + ' px';
-            document.getElementById('valLetterSpacing').textContent = state.letterSpacing + ' px';
-            document.getElementById('valMargin').textContent = state.margin + ' px';
-            document.getElementById('titlePreviewPill').textContent = 'Titel: ' + state.title;
-
-            const trimmed = state.text.trim();
-            const words = trimmed ? trimmed.split(/\s+/).length : 0;
-            document.getElementById('liveTextCounter').textContent = `${state.text.length} Zeichen · ${words} Wörter`;
-
-            renderPreview();
-        }
-
-        document.getElementById('writeTextarea').addEventListener('input', handleControlChange);
-
-        function setInkColor(hex) {
-            state.inkColor = hex;
-            renderPreview();
-        }
-
-        function clearWriteText() {
-            document.getElementById('writeTextarea').value = '';
-            state.currentPage = 0;
-            handleControlChange();
-        }
-
-        function insertPageBreak() {
-            const ta = document.getElementById('writeTextarea');
-            ta.value += (ta.value.endsWith('\n') || ta.value === '' ? '' : '\n') + '---SEITE---\n';
-            handleControlChange();
-        }
-
-        function shuffleAllVariants() {
-            state.seedOffset = Math.floor(Math.random() * 10000) + 1;
-            renderPreview();
-            showToast('Buchstaben-Varianten neu gemischt');
-        }
-
-        function resetAppearance() {
-            state.inkColor = '#1e3a8a';
-            document.getElementById('sliderFontSize').value = 34;
-            document.getElementById('sliderLineHeight').value = 46;
-            document.getElementById('sliderLetterSpacing').value = 1;
-            document.getElementById('sliderMargin').value = 64;
-            handleControlChange();
-        }
-
-        function handlePngUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    state.customBgDataUrl = e.target.result;
-                    state.customBgImage = img;
-                    document.getElementById('paperSelect').value = 'custom-png';
-                    document.getElementById('customBgBar').classList.remove('hidden');
-                    document.getElementById('customBgBar').classList.add('flex');
-                    document.getElementById('customBgName').textContent = 'PNG aktiv: ' + file.name;
-                    handleControlChange();
-                    showToast('PNG-Hintergrund geladen');
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function removeCustomBackground() {
-            state.customBgDataUrl = null;
-            state.customBgImage = null;
-            document.getElementById('paperSelect').value = 'grid';
-            document.getElementById('customBgBar').classList.add('hidden');
-            document.getElementById('customBgBar').classList.remove('flex');
-            handleControlChange();
-        }
-
-        function seededRandom(index) {
-            const x = Math.sin((index + 1) * 9301 + state.seedOffset * 49297) * 233280;
-            return x - Math.floor(x);
-        }
-
-        function computePages() {
-            const W = 794;
-            const H = 1123;
-            const margin = state.margin;
-            const maxX = W - margin;
-            const maxY = H - margin;
-            const lineH = state.lineHeight;
-            const size = state.fontSize;
-
-            const rawBlocks = state.text.split('---SEITE---');
-            const pages = [];
-
-            rawBlocks.forEach((blockText, bIdx) => {
-                let items = [];
-                let x = margin;
-                let y = margin + size;
-                let charCounter = bIdx * 500;
-
-                const lines = blockText.split('\n');
-                lines.forEach((line, lIdx) => {
-                    const words = line.split(/(\s+)/);
-                    words.forEach(token => {
-                        if (token === '') return;
-                        const isSpace = /^\s+$/.test(token);
-                        const tokenWidth = token.length * (size * 0.46 + state.letterSpacing);
-
-                        if (!isSpace && x + tokenWidth > maxX && x > margin) {
-                            x = margin;
-                            y += lineH;
-                            if (y > maxY) {
-                                pages.push(items);
-                                items = [];
-                                y = margin + size;
-                            }
-                        }
-
-                        for (let i = 0; i < token.length; i++) {
-                            const ch = token[i];
-                            charCounter++;
-                            if (ch === ' ') {
-                                x += size * 0.34 + state.letterSpacing;
-                                continue;
-                            }
-
-                            const jitterY = (seededRandom(charCounter) - 0.5) * 2.4;
-                            const jitterRot = (seededRandom(charCounter + 77) - 0.5) * 0.06;
-                            const variants = state.glyphs[ch];
-                            const variantIdx = (variants && variants.length > 0)
-                                ? Math.floor(seededRandom(charCounter + 19) * variants.length)
-                                : -1;
-
-                            items.push({
-                                ch,
-                                x,
-                                y: y + jitterY,
-                                rot: jitterRot,
-                                variantIdx
-                            });
-
-                            x += size * 0.47 + state.letterSpacing;
-                        }
-                    });
-
-                    if (lIdx < lines.length - 1) {
-                        x = margin;
-                        y += lineH;
-                        if (y > maxY) {
-                            pages.push(items);
-                            items = [];
-                            y = margin + size;
-                        }
-                    }
-                });
-
-                pages.push(items);
-            });
-
-            if (pages.length === 0) pages.push([]);
-            return pages;
-        }
-
-        function drawPaperBackground(ctx, W, H) {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, W, H);
-
-            if (state.paper === 'custom-png' && state.customBgImage) {
-                ctx.drawImage(state.customBgImage, 0, 0, W, H);
-                return;
-            }
-
-            if (state.paper === 'grid') {
-                const step = 19;
-                ctx.strokeStyle = '#cbd5e1';
-                ctx.lineWidth = 0.8;
-                ctx.beginPath();
-                for (let x = step; x < W; x += step) {
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, H);
-                }
-                for (let y = step; y < H; y += step) {
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(W, y);
-                }
-                ctx.stroke();
-
-                ctx.strokeStyle = '#fca5a5';
-                ctx.lineWidth = 1.2;
-                ctx.beginPath();
-                ctx.moveTo(54, 0);
-                ctx.lineTo(54, H);
-                ctx.stroke();
-            } else if (state.paper === 'lined') {
-                const step = state.lineHeight;
-                ctx.strokeStyle = '#cbd5e1';
-                ctx.lineWidth = 0.9;
-                ctx.beginPath();
-                for (let y = state.margin + state.fontSize + 6; y < H - 30; y += step) {
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(W, y);
-                }
-                ctx.stroke();
-
-                ctx.strokeStyle = '#fca5a5';
-                ctx.lineWidth = 1.2;
-                ctx.beginPath();
-                ctx.moveTo(54, 0);
-                ctx.lineTo(54, H);
-                ctx.stroke();
-            }
-        }
-
-        function drawStrokesGlyph(ctx, strokes, x, y, size, color) {
-            ctx.save();
-            ctx.strokeStyle = color;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.lineWidth = Math.max(1.6, size * 0.065);
-
-            const scale = size / 145;
-            const drawX = x - size * 0.22;
-            const drawY = y - size * 0.98;
-
-            strokes.forEach(stroke => {
-                if (!stroke || stroke.length < 2) return;
-                ctx.beginPath();
-                ctx.moveTo(drawX + stroke[0].x * scale, drawY + stroke[0].y * scale);
-                for (let i = 1; i < stroke.length; i++) {
-                    ctx.lineTo(drawX + stroke[i].x * scale, drawY + stroke[i].y * scale);
-                }
-                ctx.stroke();
-            });
-            ctx.restore();
-        }
-
-        function renderPageToCanvas(canvas, pageItems) {
-            const ctx = canvas.getContext('2d');
-            const W = canvas.width;
-            const H = canvas.height;
-            ctx.clearRect(0, 0, W, H);
-
-            drawPaperBackground(ctx, W, H);
-
-            pageItems.forEach(item => {
-                ctx.save();
-                ctx.translate(item.x, item.y);
-                ctx.rotate(item.rot);
-
-                if (state.font === 'my-script' && item.variantIdx >= 0 && state.glyphs[item.ch]?.[item.variantIdx]) {
-                    drawStrokesGlyph(ctx, state.glyphs[item.ch][item.variantIdx], 0, 0, state.fontSize, state.inkColor);
-                } else {
-                    const fallbackFamily = state.font === 'patrick' ? '"Patrick Hand", cursive' : '"Caveat", cursive';
-                    ctx.font = `${state.fontSize}px ${fallbackFamily}`;
-                    ctx.fillStyle = state.inkColor;
-                    ctx.fillText(item.ch, 0, 0);
-                }
-                ctx.restore();
-            });
-        }
-
-        function renderPreview() {
-            cachedPages = computePages();
-            if (state.currentPage >= cachedPages.length) state.currentPage = cachedPages.length - 1;
-            if (state.currentPage < 0) state.currentPage = 0;
-
-            document.getElementById('pageIndicator').textContent = `Seite ${state.currentPage + 1} / ${cachedPages.length}`;
-            const canvas = document.getElementById('previewCanvas');
-            renderPageToCanvas(canvas, cachedPages[state.currentPage] || []);
-        }
-
-        function changePreviewPage(delta) {
-            const next = state.currentPage + delta;
-            if (next >= 0 && next < cachedPages.length) {
-                state.currentPage = next;
-                renderPreview();
-            }
-        }
-
-        function hexToRgb(hex) {
-            const clean = (hex || '#1e3a8a').replace('#', '');
-            const full = clean.length === 3
-                ? clean.split('').map(c => c + c).join('')
-                : clean.padEnd(6, '0').slice(0, 6);
-            const num = parseInt(full, 16);
-            return {
-                r: (num >> 16) & 255,
-                g: (num >> 8) & 255,
-                b: num & 255
-            };
-        }
-
-        function drawPaperToPdfVector(pdf, pageW, pageH, pxToMmX, pxToMmY) {
-            pdf.setFillColor(255, 255, 255);
-            pdf.rect(0, 0, pageW, pageH, 'F');
-
-            if (state.paper === 'custom-png' && state.customBgDataUrl) {
-                pdf.addImage(state.customBgDataUrl, 'PNG', 0, 0, pageW, pageH);
-                return;
-            }
-
-            if (state.paper === 'grid') {
-                const stepPx = 19;
-                pdf.setDrawColor(203, 213, 225);
-                pdf.setLineWidth(0.2);
-                for (let x = stepPx; x < 794; x += stepPx) {
-                    const mmX = x * pxToMmX;
-                    pdf.line(mmX, 0, mmX, pageH);
-                }
-                for (let y = stepPx; y < 1123; y += stepPx) {
-                    const mmY = y * pxToMmY;
-                    pdf.line(0, mmY, pageW, mmY);
-                }
-
-                pdf.setDrawColor(252, 165, 165);
-                pdf.setLineWidth(0.35);
-                const marginLineX = 54 * pxToMmX;
-                pdf.line(marginLineX, 0, marginLineX, pageH);
-            } else if (state.paper === 'lined') {
-                const stepPx = state.lineHeight;
-                pdf.setDrawColor(203, 213, 225);
-                pdf.setLineWidth(0.22);
-                for (let y = state.margin + state.fontSize + 6; y < 1123 - 30; y += stepPx) {
-                    const mmY = y * pxToMmY;
-                    pdf.line(0, mmY, pageW, mmY);
-                }
-
-                pdf.setDrawColor(252, 165, 165);
-                pdf.setLineWidth(0.35);
-                const marginLineX = 54 * pxToMmX;
-                pdf.line(marginLineX, 0, marginLineX, pageH);
-            }
-        }
-
-        function writeGlyphStrokesToPdfVector(pdf, strokes, itemX, itemY, rot, size, colorRgb, pxToMmX, pxToMmY) {
-            const scale = size / 145;
-            const drawX = itemX - size * 0.22;
-            const drawY = itemY - size * 0.98;
-            const cos = Math.cos(rot);
-            const sin = Math.sin(rot);
-
-            function transformPoint(localX, localY) {
-                const px = drawX + localX * scale;
-                const py = drawY + localY * scale;
-                const dx = px - itemX;
-                const dy = py - itemY;
-                const rx = itemX + dx * cos - dy * sin;
-                const ry = itemY + dx * sin + dy * cos;
-                return {
-                    x: rx * pxToMmX,
-                    y: ry * pxToMmY
-                };
-            }
-
-            pdf.setDrawColor(colorRgb.r, colorRgb.g, colorRgb.b);
-            pdf.setLineWidth(Math.max(0.45, (size * 0.065) * pxToMmX));
-            pdf.setLineCap('round');
-            pdf.setLineJoin('round');
-
-            strokes.forEach(stroke => {
-                if (!stroke || stroke.length < 2) return;
-                for (let i = 1; i < stroke.length; i++) {
-                    const p1 = transformPoint(stroke[i - 1].x, stroke[i - 1].y);
-                    const p2 = transformPoint(stroke[i].x, stroke[i].y);
-                    pdf.line(p1.x, p1.y, p2.x, p2.y);
-                }
-            });
-        }
-
-        // VEKTOR-PDF EXPORT FÜR NOTABILITY
-        async function exportNotabilityPdf() {
-            const btn = document.getElementById('exportPdfBtn');
-            btn.textContent = '⏳ Vektor-PDF wird erstellt...';
-            btn.disabled = true;
-
-            try {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                const pageW = 210;
-                const pageH = 297;
-                const pxToMmX = pageW / 794;
-                const pxToMmY = pageH / 1123;
-                const pages = computePages();
-                const rgb = hexToRgb(state.inkColor);
-
-                // Fallback-Canvas nur für Zeichen ohne eigene Vektor-Striche (z. B. Caveat/Patrick)
-                const fallbackCanvas = document.createElement('canvas');
-                fallbackCanvas.width = 256;
-                fallbackCanvas.height = 256;
-                const fCtx = fallbackCanvas.getContext('2d');
-
-                for (let i = 0; i < pages.length; i++) {
-                    if (i > 0) pdf.addPage();
-                    drawPaperToPdfVector(pdf, pageW, pageH, pxToMmX, pxToMmY);
-
-                    pages[i].forEach(item => {
-                        const customStrokes = (state.font === 'my-script' && item.variantIdx >= 0)
-                            ? state.glyphs[item.ch]?.[item.variantIdx]
-                            : null;
-
-                        if (customStrokes && customStrokes.length > 0) {
-                            writeGlyphStrokesToPdfVector(
-                                pdf,
-                                customStrokes,
-                                item.x,
-                                item.y,
-                                item.rot,
-                                state.fontSize,
-                                rgb,
-                                pxToMmX,
-                                pxToMmY
-                            );
-                        } else {
-                            // Sauberer Fallback als Vektor-Pfad/Linien über Konturpunkte falls kein eigener Strich hinterlegt ist
-                            const fallbackFamily = state.font === 'patrick' ? '"Patrick Hand", cursive' : '"Caveat", cursive';
-                            fCtx.clearRect(0, 0, 256, 256);
-                            fCtx.font = `140px ${fallbackFamily}`;
-                            fCtx.fillStyle = '#000000';
-                            fCtx.textBaseline = 'alphabetic';
-                            fCtx.fillText(item.ch, 35, 190);
-
-                            const imgData = fCtx.getImageData(0, 0, 256, 256).data;
-                            const step = 4;
-                            const scale = state.fontSize / 140;
-                            const cos = Math.cos(item.rot);
-                            const sin = Math.sin(item.rot);
-
-                            pdf.setFillColor(rgb.r, rgb.g, rgb.b);
-                            const dotSizeMm = Math.max(0.35, step * scale * pxToMmX);
-
-                            for (let py = 0; py < 256; py += step) {
-                                for (let px = 0; px < 256; px += step) {
-                                    const alpha = imgData[(py * 256 + px) * 4 + 3];
-                                    if (alpha > 110) {
-                                        const lx = (px - 35) * scale;
-                                        const ly = (py - 190) * scale;
-                                        const rx = item.x + lx * cos - ly * sin;
-                                        const ry = item.y + lx * sin + ly * cos;
-                                        pdf.rect(rx * pxToMmX, ry * pxToMmY, dotSizeMm, dotSizeMm, 'F');
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-
-                const safeName = (state.title || 'SchoolFucker').replace(/[^a-zA-Z0-9äöüÄÖÜ_-]/g, '_');
-                pdf.save(`${safeName}_Vektor.pdf`);
-                showToast('Vektor-PDF erfolgreich exportiert!');
-            } catch (err) {
-                showToast('Fehler beim Vektor-PDF-Export');
-            } finally {
-                btn.textContent = '📄 Als Vektor-PDF für Notability exportieren';
-                btn.disabled = false;
-            }
-        }
-
-        function saveCurrentNotebook() {
-            const title = (document.getElementById('notebookTitleInput').value || 'Mein Heft').trim();
-            const existingIdx = state.notebooks.findIndex(n => n.title === title);
-            const entry = {
-                id: existingIdx >= 0 ? state.notebooks[existingIdx].id : 'nb-' + Date.now(),
-                title,
-                text: state.text,
-                font: state.font,
-                paper: state.paper,
-                inkColor: state.inkColor,
-                fontSize: state.fontSize,
-                lineHeight: state.lineHeight,
-                letterSpacing: state.letterSpacing,
-                margin: state.margin,
-                updatedAt: new Date().toLocaleDateString('de-DE')
-            };
-
-            if (existingIdx >= 0) {
-                state.notebooks[existingIdx] = entry;
-            } else {
-                state.notebooks.unshift(entry);
-            }
-            saveNotebooksToStorage();
-            showToast(`Heft "${title}" gespeichert`);
-        }
-
-        function renderNotebooksList() {
-            const grid = document.getElementById('notebooksGrid');
-            if (state.notebooks.length === 0) {
-                grid.innerHTML = `<div class="col-span-full bg-[#151821] border border-[#262a34] rounded-2xl p-6 text-center text-xs text-gray-400">Noch keine Hefte gespeichert.</div>`;
-                return;
-            }
-
-            grid.innerHTML = state.notebooks.map(nb => `
-                <div class="bg-[#151821] border border-[#262a34] rounded-2xl p-4 flex flex-col justify-between space-y-3">
-                    <div>
-                        <div class="flex items-start justify-between gap-2">
-                            <h3 class="font-bold text-sm text-white truncate">${nb.title}</h3>
-                            <span class="text-[10px] text-gray-400 shrink-0">${nb.updatedAt || ''}</span>
-                        </div>
-                        <p class="text-xs text-gray-400 mt-2 line-clamp-3">${nb.text ? nb.text.replace(/</g, '&lt;') : 'Leeres Heft'}</p>
-                    </div>
-                    <div class="flex items-center gap-2 pt-2 border-t border-[#262a34]">
-                        <button onclick="openNotebook('${nb.id}')" class="flex-1 py-1.5 rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] text-xs font-semibold text-white transition">Öffnen</button>
-                        <button onclick="deleteNotebook('${nb.id}')" class="px-3 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-900/70 border border-red-800/50 text-xs font-medium text-red-300 transition">Löschen</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function openNotebook(id) {
-            const nb = state.notebooks.find(n => n.id === id);
-            if (!nb) return;
-            document.getElementById('writeTextarea').value = nb.text || '';
-            document.getElementById('notebookTitleInput').value = nb.title || 'Mein Heft';
-            document.getElementById('fontSelect').value = nb.font || 'my-script';
-            document.getElementById('paperSelect').value = nb.paper || 'grid';
-            document.getElementById('sliderFontSize').value = nb.fontSize || 34;
-            document.getElementById('sliderLineHeight').value = nb.lineHeight || 46;
-            document.getElementById('sliderLetterSpacing').value = nb.letterSpacing ?? 1;
-            document.getElementById('sliderMargin').value = nb.margin || 64;
-            state.inkColor = nb.inkColor || '#1e3a8a';
-            handleControlChange();
-            setActiveView('write');
-        }
-
-        function deleteNotebook(id) {
-            state.notebooks = state.notebooks.filter(n => n.id !== id);
-            saveNotebooksToStorage();
-            renderNotebooksList();
-            showToast('Heft gelöscht');
-        }
-
-        const glyphCanvas = document.getElementById('glyphDrawCanvas');
-        const gCtx = glyphCanvas.getContext('2d');
-        let currentStrokes = [];
-        let activeStroke = null;
-        let isDrawing = false;
-
-        function drawGlyphGuidelines() {
-            gCtx.clearRect(0, 0, 260, 260);
-            gCtx.fillStyle = '#ffffff';
-            gCtx.fillRect(0, 0, 260, 260);
-
-            gCtx.strokeStyle = '#e2e8f0';
-            gCtx.lineWidth = 1;
-            gCtx.setLineDash([4, 4]);
-            gCtx.beginPath();
-            gCtx.moveTo(0, 80); gCtx.lineTo(260, 80);
-            gCtx.moveTo(0, 140); gCtx.lineTo(260, 140);
-            gCtx.stroke();
-
-            gCtx.setLineDash([]);
-            gCtx.strokeStyle = '#93c5fd';
-            gCtx.beginPath();
-            gCtx.moveTo(0, 195); gCtx.lineTo(260, 195);
-            gCtx.stroke();
-
-            gCtx.strokeStyle = '#1e3a8a';
-            gCtx.lineWidth = 5;
-            gCtx.lineCap = 'round';
-            gCtx.lineJoin = 'round';
-            currentStrokes.forEach(s => {
-                if (s.length < 2) return;
-                gCtx.beginPath();
-                gCtx.moveTo(s[0].x, s[0].y);
-                for (let i = 1; i < s.length; i++) gCtx.lineTo(s[i].x, s[i].y);
-                gCtx.stroke();
-            });
-        }
-
-        function getCanvasPoint(e) {
-            const rect = glyphCanvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return {
-                x: Math.round((clientX - rect.left) * (260 / rect.width)),
-                y: Math.round((clientY - rect.top) * (260 / rect.height))
-            };
-        }
-
-        glyphCanvas.addEventListener('pointerdown', e => {
-            isDrawing = true;
-            activeStroke = [getCanvasPoint(e)];
-            currentStrokes.push(activeStroke);
-            drawGlyphGuidelines();
-        });
-        glyphCanvas.addEventListener('pointermove', e => {
-            if (!isDrawing || !activeStroke) return;
-            activeStroke.push(getCanvasPoint(e));
-            drawGlyphGuidelines();
-        });
-        window.addEventListener('pointerup', () => {
-            isDrawing = false;
-            activeStroke = null;
-        });
-
-        function clearGlyphCanvas() {
-            currentStrokes = [];
-            drawGlyphGuidelines();
-        }
-
-        function selectCharToTrain(ch) {
-            state.activeChar = ch;
-            document.getElementById('activeCharDisplay').textContent = ch;
-            clearGlyphCanvas();
-            renderAlphabetGrid();
-            renderVariantsForChar(ch);
-        }
-
-        function saveGlyphVariant() {
-            if (currentStrokes.length === 0) {
-                showToast('Zeichne zuerst den Buchstaben!');
-                return;
-            }
-            if (!state.glyphs[state.activeChar]) state.glyphs[state.activeChar] = [];
-            state.glyphs[state.activeChar].push(JSON.parse(JSON.stringify(currentStrokes)));
-            saveGlyphsToStorage();
-            clearGlyphCanvas();
-            renderAlphabetGrid();
-            renderVariantsForChar(state.activeChar);
-            showToast(`Variante für "${state.activeChar}" gespeichert`);
-        }
-
-        function deleteGlyphVariant(ch, idx) {
-            if (!state.glyphs[ch]) return;
-            state.glyphs[ch].splice(idx, 1);
-            if (state.glyphs[ch].length === 0) delete state.glyphs[ch];
-            saveGlyphsToStorage();
-            renderAlphabetGrid();
-            renderVariantsForChar(ch);
-        }
-
-        function renderAlphabetGrid() {
-            const grid = document.getElementById('alphabetGrid');
-            grid.innerHTML = CHAR_SET.map(ch => {
-                const count = state.glyphs[ch]?.length || 0;
-                const isActive = ch === state.activeChar;
-                let cls = 'py-2 rounded-lg text-xs font-bold border transition ';
-                if (isActive) cls += 'bg-[#2563eb] text-white border-blue-400';
-                else if (count > 0) cls += 'bg-emerald-950/60 text-emerald-300 border-emerald-700/60';
-                else cls += 'bg-[#0f1117] text-gray-300 border-[#262a34] hover:border-gray-500';
-                return `<button onclick="selectCharToTrain('${ch.replace(/'/g, "\\'")}')" class="${cls}">${ch}${count > 1 ? `<span class="text-[9px] ml-0.5 opacity-80">${count}</span>` : ''}</button>`;
-            }).join('');
-        }
-
-        function renderVariantsForChar(ch) {
-            const list = document.getElementById('charVariantsList');
-            const variants = state.glyphs[ch] || [];
-            if (variants.length === 0) {
-                list.innerHTML = `<div class="text-[11px] text-gray-500">Noch keine Variante für "${ch}" gespeichert.</div>`;
-                return;
-            }
-            list.innerHTML = `<div class="text-[11px] text-gray-400 mb-1">Gespeicherte Varianten für "${ch}":</div>` +
-                variants.map((_, idx) => `
-                    <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#0f1117] border border-[#262a34] text-xs">
-                        <span class="text-gray-200">Variante #${idx + 1}</span>
-                        <button onclick="deleteGlyphVariant('${ch.replace(/'/g, "\\'")}', ${idx})" class="text-red-400 hover:text-red-300 text-[11px]">Löschen</button>
-                    </div>
-                `).join('');
-        }
-
-        loadStorage();
-        updateNotebookBadges();
-        updateTrainedCount();
-        drawGlyphGuidelines();
-        handleControlChange();
-    </script>
+    <script type="module" src="/lib/studio-app.js"></script>
 </body>
 </html>
